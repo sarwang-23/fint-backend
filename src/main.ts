@@ -1,9 +1,15 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Security Middlewares
+  app.use(helmet());
+  app.enableCors();
 
   // Global validation pipe — class-validator + class-transformer
   app.useGlobalPipes(
@@ -17,8 +23,19 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Swagger Documentation Setup
+  const config = new DocumentBuilder()
+    .setTitle('FINT Backend API')
+    .setDescription('API documentation for FINT - AI Financial Advisor')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
   console.log(`🚀 FINT Backend running on http://localhost:${port}/api/v1`);
+  console.log(`📚 Swagger documentation available at http://localhost:${port}/api/docs`);
 }
 bootstrap();
