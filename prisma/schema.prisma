@@ -220,9 +220,11 @@ model User {
   retirement          Retirement?
   financialGoals      FinancialGoal[]
   scoreHistories      ScoreHistory[]
-  recommendations     Recommendation[]
-  forecasts           Forecast[]
-  simulations         Simulation[]
+  aiRecommendations   AIRecommendation[]
+  aiForecasts         AIForecast[]
+  aiSimulations       AISimulation[]
+  aiConversations     AIConversation[]
+  aiAuditLogs         AIAuditLog[]
 }
 
 model UserProfile {
@@ -450,62 +452,94 @@ model ScoreFactor {
 // PHASE 7 — AI ENGINE
 // ─────────────────────────────────────────────
 
-enum RecommendationPriority {
-  HIGH
-  MEDIUM
-  LOW
+model AIRecommendation {
+  id              String    @id @default(cuid())
+  userId          String
+  summary         String
+  riskLevel       String
+  recommendations Json
+  nextSteps       Json
+  score           Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
-enum RecommendationStatus {
-  PENDING
-  ACKNOWLEDGED
-  COMPLETED
+model AIForecast {
+  id               String    @id @default(cuid())
+  userId           String
+  futureValue      Decimal   @db.Decimal(15, 2)
+  retirementCorpus Decimal   @db.Decimal(15, 2)
+  savingRate       Decimal   @db.Decimal(5, 2)
+  debtRatio        Decimal   @db.Decimal(5, 2)
+  summary          String
+  risk             String
+  createdAt        DateTime  @default(now())
+  deletedAt        DateTime?
+
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
-enum SimulationScenario {
-  INVEST_MONTHLY
-  CLOSE_LOAN
-  INCOME_INCREASE
-  EXPENSE_REDUCTION
-  RETIREMENT_EARLY
-  CUSTOM
+model AISimulation {
+  id           String    @id @default(cuid())
+  userId       String
+  scenarioType String
+  oldScore     Int
+  newScore     Int
+  scenario     Json
+  summary      String
+  impact       String
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([scenarioType])
 }
 
-model Recommendation {
-  id          String                 @id @default(cuid())
-  userId      String
-  title       String
-  description String
-  priority    RecommendationPriority @default(MEDIUM)
-  impact      String?
-  status      RecommendationStatus   @default(PENDING)
-  createdAt   DateTime               @default(now())
-  updatedAt   DateTime               @updatedAt
-
-  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Forecast {
-  id                  String   @id @default(cuid())
-  userId              String
-  year                Int
-  projectedIncome     Decimal  @db.Decimal(15, 2)
-  projectedExpense    Decimal  @db.Decimal(15, 2)
-  projectedNetWorth   Decimal  @db.Decimal(15, 2)
-  projectedInvestment Decimal? @db.Decimal(15, 2)
-  createdAt           DateTime @default(now())
-
-  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model Simulation {
-  id        String             @id @default(cuid())
+model AIConversation {
+  id        String    @id @default(cuid())
   userId    String
-  scenario  SimulationScenario @default(CUSTOM)
-  input     Json
-  result    Json
-  createdAt DateTime           @default(now())
+  question  String
+  answer    String
+  tokens    Int       @default(0)
+  provider  String
+  createdAt DateTime  @default(now())
+  deletedAt DateTime?
 
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([provider])
+}
+
+model AIAuditLog {
+  id           String    @id @default(cuid())
+  userId       String
+  action       String
+  provider     String
+  status       String
+  responseTime Float
+  tokenUsage   Int
+  cost         Decimal?  @db.Decimal(10, 6)
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([status])
 }
 

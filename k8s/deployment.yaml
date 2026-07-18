@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fint-backend
+  labels:
+    app: fint-backend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fint-backend
+  template:
+    metadata:
+      labels:
+        app: fint-backend
+    spec:
+      containers:
+        - name: fint-backend
+          image: YOUR_DOCKER_USERNAME/fint-backend:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: fint-secrets
+                  key: database-url
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: fint-secrets
+                  key: jwt-secret
+            - name: GEMINI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: fint-secrets
+                  key: gemini-api-key
+            - name: NODE_ENV
+              value: "production"
+          # Health check for Kubernetes pod management
+          livenessProbe:
+            httpGet:
+              path: /api/v1/ai/health
+              port: 3000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /api/v1/ai/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fint-backend-service
+spec:
+  selector:
+    app: fint-backend
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+---
+# Auto Scaling — scales from 2 to 10 pods based on CPU
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fint-backend-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: fint-backend
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
