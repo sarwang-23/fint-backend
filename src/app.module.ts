@@ -12,6 +12,7 @@ import { RetirementModule } from './finance/retirement/retirement.module';
 import { AssetModule } from './finance/asset/asset.module';
 import { FinancialGoalModule } from './finance/financial-goal/financial-goal.module';
 import { FinancialAccountModule } from './finance/financial-account/financial-account.module';
+import { ScoreModule } from './score/score.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { FinancialAccountModule } from './finance/financial-account/financial-ac
     AssetModule,
     FinancialGoalModule,
     FinancialAccountModule,
+    ScoreModule,
   ],
 })
 export class AppModule {}
