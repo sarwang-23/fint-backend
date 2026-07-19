@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { InsuranceService } from './insurance.service';
-import { CreateInsuranceDto } from './insurance.dto';
+import { CreateInsuranceDto, UpdateInsuranceDto, InsuranceFilterDto } from './insurance.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Insurance')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('insurance')
+@Controller('finance/insurance')
 export class InsuranceController {
-  constructor(private readonly insuranceService: InsuranceService) {}
+  constructor(private readonly service: InsuranceService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateInsuranceDto) {
-    return this.insuranceService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Insurance' })
+  create(@Request() req, @Body() dto: CreateInsuranceDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.insuranceService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Insurance with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: InsuranceFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.insuranceService.findOne(id);
+  @ApiOperation({ summary: 'Get Insurance by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateInsuranceDto>) {
-    return this.insuranceService.update(id, dto);
+  @ApiOperation({ summary: 'Update Insurance' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateInsuranceDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.insuranceService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Insurance' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

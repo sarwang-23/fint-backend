@@ -225,6 +225,8 @@ model User {
   aiSimulations       AISimulation[]
   aiConversations     AIConversation[]
   aiAuditLogs         AIAuditLog[]
+  financeAuditLogs    FinanceAuditLog[]
+  notifications       Notification[]
 }
 
 model UserProfile {
@@ -269,6 +271,7 @@ model FinancialAccount {
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   incomes         Income[]
@@ -289,6 +292,7 @@ model Income {
 
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
 
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   account     FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -307,6 +311,7 @@ model Expense {
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
 
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   account       FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -324,6 +329,7 @@ model Asset {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -345,6 +351,7 @@ model Loan {
 
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
 
   user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -363,6 +370,7 @@ model Investment {
 
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
 
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -381,6 +389,7 @@ model Insurance {
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -398,6 +407,7 @@ model Retirement {
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
 
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -416,8 +426,25 @@ model FinancialGoal {
 
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
 
   user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FinanceAuditLog {
+  id           String    @id @default(cuid())
+  userId       String
+  module       String
+  action       String
+  recordId     String
+  oldData      Json?
+  newData      Json?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([module])
 }
 
 // ─────────────────────────────────────────────
@@ -541,5 +568,20 @@ model AIAuditLog {
   @@index([userId])
   @@index([createdAt])
   @@index([status])
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String    @default("INFO")
+  isRead    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 

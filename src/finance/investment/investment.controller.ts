@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { InvestmentService } from './investment.service';
-import { CreateInvestmentDto } from './investment.dto';
+import { CreateInvestmentDto, UpdateInvestmentDto, InvestmentFilterDto } from './investment.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Investment')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('investment')
+@Controller('finance/investment')
 export class InvestmentController {
-  constructor(private readonly investmentService: InvestmentService) {}
+  constructor(private readonly service: InvestmentService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateInvestmentDto) {
-    return this.investmentService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Investment' })
+  create(@Request() req, @Body() dto: CreateInvestmentDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.investmentService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Investment with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: InvestmentFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.investmentService.findOne(id);
+  @ApiOperation({ summary: 'Get Investment by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateInvestmentDto>) {
-    return this.investmentService.update(id, dto);
+  @ApiOperation({ summary: 'Update Investment' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateInvestmentDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.investmentService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Investment' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

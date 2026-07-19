@@ -9,76 +9,105 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import { PrismaService } from '../../database/prisma.service';
-import { SignupDto } from '../dto/signup.dto';
-import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import * as nodemailer from 'nodemailer';
+import { AuthRepository } from './auth.repository';
+import { SignupDto } from './dto/signup.dto';
+import { TokenPayload } from './types';
 
 @Injectable()
 export class AuthService {
+  private transporter: nodemailer.Transporter;
+
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.transporter = nodemailer.createTransport({
+      host: this.configService.get<string>('SMTP_HOST') || 'smtp.ethereal.email',
+      port: this.configService.get<number>('SMTP_PORT') || 587,
+      auth: {
+        user: this.configService.get<string>('SMTP_USER') || 'ethereal.user@ethereal.email',
+        pass: this.configService.get<string>('SMTP_PASS') || 'ethereal_password',
+      },
+    });
+  }
 
   // ─── Signup ───────────────────────────────────────────────────────────────
   async signup(dto: SignupDto) {
-    // 1. Check email already exists
-    const existing = await this.prisma.user.findUnique({
-      where: { email: dto.email },
-    });
+    const existing = await this.authRepository.findByEmail(dto.email);
     if (existing) {
       throw new ConflictException('Email already registered');
     }
 
-    // 2. Hash password
     const rounds = this.configService.get<number>('BCRYPT_ROUNDS') ?? 12;
     const hashedPassword = await bcrypt.hash(dto.password, Number(rounds));
 
-    // 3. Create user + profile in a transaction
-    const user = await this.prisma.$transaction(async (tx) => {
-      const newUser = await tx.user.create({
-        data: {
-          fullName: dto.fullName,
-          email: dto.email,
-          password: hashedPassword,
-          phone: dto.phone,
-        },
-      });
+    const user = await this.authRepository.createUser(
+      {
+        fullName: dto.name,
+        email: dto.email,
+        password: hashedPassword,
+        phone: dto.phone,
+      },
+      dto.gender,
+    );
 
-      await tx.userProfile.create({
-        data: {
-          userId: newUser.id,
-          gender: dto.gender ?? null,
-        },
-      });
-
-      return newUser;
-    });
+    // Send verification email
+    await this.sendVerificationEmail(user.email, user.id);
 
     return {
-      message: 'Account created successfully',
+      message: 'Account created successfully. Please check your email to verify your account.',
       userId: user.id,
     };
   }
 
+  private async sendVerificationEmail(email: string, userId: string) {
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(verificationToken).digest('hex');
+    const expiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+    await this.authRepository.updateUser(userId, {
+      refreshToken: hashedToken, // Reusing refreshToken field for verification token during signup
+      refreshTokenExpiry: expiry,
+    });
+
+    const verifyUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: '"Fint" <noreply@fint.com>',
+        to: email,
+        subject: 'Verify your Fint Account',
+        html: `<p>Please click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+      });
+    } catch (e) {
+      console.error('Failed to send verification email', e);
+    }
+  }
+
   // ─── Validate user (used by LocalStrategy) ────────────────────────────────
   async validateUser(email: string, password: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.authRepository.findByEmail(email);
     if (!user || !user.isActive) return null;
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return null;
+
+    // Optional: enforce email verification before login
+    // if (!user.isVerified) {
+    //   throw new UnauthorizedException('Please verify your email first');
+    // }
 
     return user;
   }
 
   // ─── Login ────────────────────────────────────────────────────────────────
   async login(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.authRepository.findById(userId);
     if (!user) throw new UnauthorizedException('User not found');
 
-    const payload: JwtPayload = {
+    const payload: TokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
@@ -87,18 +116,14 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = await this.generateRefreshToken(user.id);
 
-    // Update lastLogin
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: { lastLogin: new Date() },
-    });
+    await this.authRepository.updateUser(user.id, { lastLogin: new Date() });
 
     return {
       accessToken,
       refreshToken,
       user: {
         id: user.id,
-        fullName: user.fullName,
+        name: user.fullName,
         email: user.email,
         role: user.role,
       },
@@ -107,9 +132,7 @@ export class AuthService {
 
   // ─── Refresh Token ────────────────────────────────────────────────────────
   async refresh(token: string) {
-    const user = await this.prisma.user.findFirst({
-      where: { refreshToken: token },
-    });
+    const user = await this.authRepository.findByRefreshToken(token);
 
     if (!user || !user.refreshTokenExpiry) {
       throw new UnauthorizedException('Invalid refresh token');
@@ -119,7 +142,7 @@ export class AuthService {
       throw new UnauthorizedException('Refresh token expired. Please login again.');
     }
 
-    const payload: JwtPayload = {
+    const payload: TokenPayload = {
       sub: user.id,
       email: user.email,
       role: user.role,
@@ -133,21 +156,17 @@ export class AuthService {
 
   // ─── Logout ───────────────────────────────────────────────────────────────
   async logout(userId: string) {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshToken: null,
-        refreshTokenExpiry: null,
-      },
+    await this.authRepository.updateUser(userId, {
+      refreshToken: null,
+      refreshTokenExpiry: null,
     });
     return { message: 'Logged out successfully' };
   }
 
   // ─── Forgot Password ──────────────────────────────────────────────────────
   async forgotPassword(email: string) {
-    const user = await this.prisma.user.findUnique({ where: { email } });
+    const user = await this.authRepository.findByEmail(email);
 
-    // Always return success to prevent email enumeration
     if (!user) {
       return { message: 'If that email exists, a reset link has been sent.' };
     }
@@ -156,16 +175,23 @@ export class AuthService {
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
     const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        refreshToken: hashedToken,       // reusing field for reset token
-        refreshTokenExpiry: expiry,
-      },
+    await this.authRepository.updateUser(user.id, {
+      refreshToken: hashedToken,
+      refreshTokenExpiry: expiry,
     });
 
-    // TODO: Send email with resetToken (Email service in Phase 5)
-    console.log(`[DEV] Password reset token for ${email}: ${resetToken}`);
+    const resetUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+
+    try {
+      await this.transporter.sendMail({
+        from: '"Fint" <noreply@fint.com>',
+        to: email,
+        subject: 'Reset Your Fint Password',
+        html: `<p>Click the link below to reset your password. It expires in 15 minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
+      });
+    } catch (e) {
+      console.error('Failed to send reset email', e);
+    }
 
     return { message: 'If that email exists, a reset link has been sent.' };
   }
@@ -174,27 +200,19 @@ export class AuthService {
   async resetPassword(token: string, newPassword: string) {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    const user = await this.prisma.user.findFirst({
-      where: {
-        refreshToken: hashedToken,
-        refreshTokenExpiry: { gt: new Date() },
-      },
-    });
+    const user = await this.authRepository.findByRefreshToken(hashedToken);
 
-    if (!user) {
+    if (!user || !user.refreshTokenExpiry || user.refreshTokenExpiry < new Date()) {
       throw new BadRequestException('Invalid or expired reset token');
     }
 
     const rounds = this.configService.get<number>('BCRYPT_ROUNDS') ?? 12;
     const hashedPassword = await bcrypt.hash(newPassword, Number(rounds));
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        password: hashedPassword,
-        refreshToken: null,
-        refreshTokenExpiry: null,
-      },
+    await this.authRepository.updateUser(user.id, {
+      password: hashedPassword,
+      refreshToken: null,
+      refreshTokenExpiry: null,
     });
 
     return { message: 'Password reset successfully' };
@@ -204,25 +222,17 @@ export class AuthService {
   async verifyEmail(token: string) {
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
 
-    const user = await this.prisma.user.findFirst({
-      where: {
-        refreshToken: hashedToken,
-        refreshTokenExpiry: { gt: new Date() },
-      },
-    });
+    const user = await this.authRepository.findByRefreshToken(hashedToken);
 
-    if (!user) {
+    if (!user || !user.refreshTokenExpiry || user.refreshTokenExpiry < new Date()) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
-    await this.prisma.user.update({
-      where: { id: user.id },
-      data: {
-        isVerified: true,
-        emailVerifiedAt: new Date(),
-        refreshToken: null,
-        refreshTokenExpiry: null,
-      },
+    await this.authRepository.updateUser(user.id, {
+      isVerified: true,
+      emailVerifiedAt: new Date(),
+      refreshToken: null,
+      refreshTokenExpiry: null,
     });
 
     return { message: 'Email verified successfully' };
@@ -235,12 +245,9 @@ export class AuthService {
     const days = parseInt(expiresInDays);
     const expiry = new Date(Date.now() + days * 24 * 60 * 60 * 1000);
 
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        refreshToken: token,
-        refreshTokenExpiry: expiry,
-      },
+    await this.authRepository.updateUser(userId, {
+      refreshToken: token,
+      refreshTokenExpiry: expiry,
     });
 
     return token;
