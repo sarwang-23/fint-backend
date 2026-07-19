@@ -13,6 +13,7 @@ import { AssetModule } from './finance/asset/asset.module';
 import { FinancialGoalModule } from './finance/financial-goal/financial-goal.module';
 import { FinancialAccountModule } from './finance/financial-account/financial-account.module';
 import { ScoreModule } from './score/score.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { ScoreModule } from './score/score.module';
     FinancialGoalModule,
     FinancialAccountModule,
     ScoreModule,
+    UsersModule,
   ],
 })
 export class AppModule {}
