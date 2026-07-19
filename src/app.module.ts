@@ -18,6 +18,8 @@ import { AiModule } from './ai/ai.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { UsersModule } from './users/users.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     AnalyticsModule,
     ReportsModule,
     NotificationsModule,
+    UsersModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
