@@ -9,29 +9,19 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
-import * as nodemailer from 'nodemailer';
+import { MailService } from '../common/mail/mail.service';
 import { AuthRepository } from './auth.repository';
 import { SignupDto } from './dto/signup.dto';
 import { TokenPayload } from './types';
 
 @Injectable()
 export class AuthService {
-  private transporter: nodemailer.Transporter;
-
   constructor(
     private readonly authRepository: AuthRepository,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
-  ) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST') || 'smtp.ethereal.email',
-      port: this.configService.get<number>('SMTP_PORT') || 587,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER') || 'ethereal.user@ethereal.email',
-        pass: this.configService.get<string>('SMTP_PASS') || 'ethereal_password',
-      },
-    });
-  }
+    private readonly mailService: MailService,
+  ) {}
 
   // ─── Signup ───────────────────────────────────────────────────────────────
   async signup(dto: SignupDto) {
@@ -74,16 +64,11 @@ export class AuthService {
 
     const verifyUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken}`;
 
-    try {
-      await this.transporter.sendMail({
-        from: '"Fint" <noreply@fint.com>',
-        to: email,
-        subject: 'Verify your Fint Account',
-        html: `<p>Please click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
-      });
-    } catch (e) {
-      console.error('Failed to send verification email', e);
-    }
+    await this.mailService.sendMail(
+      email,
+      'Verify your Fint Account',
+      `<p>Please click the link below to verify your email address:</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`
+    );
   }
 
   // ─── Validate user (used by LocalStrategy) ────────────────────────────────
@@ -182,16 +167,11 @@ export class AuthService {
 
     const resetUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
 
-    try {
-      await this.transporter.sendMail({
-        from: '"Fint" <noreply@fint.com>',
-        to: email,
-        subject: 'Reset Your Fint Password',
-        html: `<p>Click the link below to reset your password. It expires in 15 minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p>`,
-      });
-    } catch (e) {
-      console.error('Failed to send reset email', e);
-    }
+    await this.mailService.sendMail(
+      email,
+      'Reset Your Fint Password',
+      `<p>Click the link below to reset your password. It expires in 15 minutes.</p><p><a href="${resetUrl}">${resetUrl}</a></p>`
+    );
 
     return { message: 'If that email exists, a reset link has been sent.' };
   }
