@@ -12,6 +12,7 @@ import * as crypto from 'crypto';
 import { PrismaService } from '../../database/prisma.service';
 import { SignupDto } from '../dto/signup.dto';
 import { JwtPayload } from '../interfaces/jwt-payload.interface';
+import { NotificationsService } from '../../notifications/notifications.service';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +20,7 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   // ─── Signup ───────────────────────────────────────────────────────────────
@@ -164,8 +166,13 @@ export class AuthService {
       },
     });
 
-    // TODO: Send email with resetToken (Email service in Phase 5)
-    console.log(`[DEV] Password reset token for ${email}: ${resetToken}`);
+    // Actually sends the email now (via Mailhog in dev, real SMTP in prod)
+    // instead of just logging the token to the console.
+    await this.notificationsService.notify(
+      user.id,
+      'Reset your FINT password',
+      `We received a request to reset your password. Use this token within 15 minutes: ${resetToken}\n\nIf you didn't request this, you can safely ignore this email.`,
+    );
 
     return { message: 'If that email exists, a reset link has been sent.' };
   }

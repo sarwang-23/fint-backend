@@ -51,6 +51,12 @@ enum NotificationType {
   SMS
 }
 
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 // ── Finance Enums ─────────────────────────────
 
 enum AccountType {
@@ -225,6 +231,8 @@ model User {
   aiSimulations       AISimulation[]
   aiConversations     AIConversation[]
   aiAuditLogs         AIAuditLog[]
+  notifications       Notification[]
+  reports             Report[]
 }
 
 model UserProfile {
@@ -543,3 +551,35 @@ model AIAuditLog {
   @@index([status])
 }
 
+model Notification {
+  id        String             @id @default(cuid())
+  userId    String
+  type      NotificationType   @default(EMAIL)
+  title     String
+  message   String
+  status    NotificationStatus @default(PENDING)
+  isRead    Boolean            @default(false)
+  sentAt    DateTime?
+  readAt    DateTime?
+  createdAt DateTime           @default(now())
+
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Report {
+  id          String     @id @default(cuid())
+  userId      String
+  reportType  ReportType @default(MONTHLY)
+  periodStart DateTime
+  periodEnd   DateTime
+  summary     Json
+  generatedAt DateTime   @default(now())
+
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([generatedAt])
+}
