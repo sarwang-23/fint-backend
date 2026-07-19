@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { AdminRepository } from './admin.repository';
-import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsService } from '../notifications/services/notifications.service';
 import { ListUsersQueryDto, AdminNotifyDto } from './admin.dto';
 
 @Injectable()

@@ -1,26 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import * as nodemailer from 'nodemailer';
 import { ConfigService } from '@nestjs/config';
+import { MailService } from '../../common/mail/mail.service';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  private transporter: nodemailer.Transporter;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-  ) {
-    this.transporter = nodemailer.createTransport({
-      host: this.configService.get<string>('SMTP_HOST'),
-      port: this.configService.get<number>('SMTP_PORT'),
-      auth: {
-        user: this.configService.get<string>('SMTP_USER'),
-        pass: this.configService.get<string>('SMTP_PASSWORD'),
-      },
-    });
-  }
+    private readonly mailService: MailService,
+  ) {}
 
   // Generate In-App Notification
   async notify(userId: string, title: string, message: string, type: string = 'INFO') {
@@ -40,19 +31,11 @@ export class NotificationsService {
     await this.notify(userId, title, message, type);
 
     // Send Email
-    try {
-      await this.transporter.sendMail({
-        from: '"FINT Advisor" <no-reply@fint.com>',
-        to: user.email,
-        subject: title,
-        text: message,
-        html: `<p>${message}</p>`,
-      });
-      this.logger.log(`Email sent to ${user.email} for ${title}`);
-    } catch (error: any) {
-      // In dev environment with missing SMTP, it's expected to fail. We just log.
-      this.logger.warn(`Failed to send email to ${user.email}: ${error.message}`);
-    }
+    await this.mailService.sendMail(
+      user.email,
+      title,
+      `<p>${message}</p>`
+    );
   }
 
   // Get User's In-App Notifications

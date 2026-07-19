@@ -20,6 +20,7 @@ import { ReportsModule } from './reports/reports.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
+import { MailModule } from './common/mail/mail.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { AdminModule } from './admin/admin.module';
     NotificationsModule,
     UsersModule,
     AdminModule,
+    MailModule,
   ],
 })
 export class AppModule {}

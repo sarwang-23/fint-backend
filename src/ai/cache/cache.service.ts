@@ -1,33 +1,32 @@
 import { Injectable, Logger } from '@nestjs/common';
-
-// Simple in-memory cache (replace with Redis when cache-manager is configured)
-// Structure: Map<cacheKey, { value: any, expiresAt: number }>
-const store = new Map<string, { value: any; expiresAt: number }>();
+import { ConfigService } from '@nestjs/config';
+import Redis from 'ioredis';
 
 @Injectable()
 export class CacheService {
   private readonly logger = new Logger(CacheService.name);
+  private redis: Redis;
+
+  constructor(private readonly configService: ConfigService) {
+    this.redis = new Redis(this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379');
+  }
 
   /**
    * Get a value from cache.
    * Returns null if not found or expired.
    */
   async get<T>(key: string): Promise<T | null> {
-    const entry = store.get(key);
-    if (!entry) return null;
-    if (Date.now() > entry.expiresAt) {
-      store.delete(key);
-      return null;
-    }
+    const data = await this.redis.get(key);
+    if (!data) return null;
     this.logger.log(`Cache HIT: ${key}`);
-    return entry.value as T;
+    return JSON.parse(data) as T;
   }
 
   /**
    * Set a value in cache with a TTL in seconds.
    */
   async set(key: string, value: any, ttlSeconds: number): Promise<void> {
-    store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
+    await this.redis.set(key, JSON.stringify(value), 'EX', ttlSeconds);
     this.logger.log(`Cache SET: ${key} (TTL: ${ttlSeconds}s)`);
   }
 
@@ -35,7 +34,7 @@ export class CacheService {
    * Invalidate a specific key.
    */
   async del(key: string): Promise<void> {
-    store.delete(key);
+    await this.redis.del(key);
     this.logger.log(`Cache DEL: ${key}`);
   }
 
