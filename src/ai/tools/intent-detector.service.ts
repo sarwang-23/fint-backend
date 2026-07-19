@@ -12,6 +12,10 @@ const INTENT_KEYWORDS: Record<ChatIntent, string[]> = {
   INSURANCE: ['insurance', 'policy', 'cover', 'term plan', 'health insurance', 'bima'],
   RETIREMENT: ['retire', 'retirement', 'pension', 'old age', 'corpus', '60 saal'],
   GOAL: ['goal', 'house', 'car', 'marriage', 'education', 'vacation', 'target', 'lakshya'],
+  BUDGET: ['budget', 'budget plan', 'spending plan', 'kitna kharcha', '50 30 20', 'monthly budget', 'allocate'],
+  EXPENSE_ANALYSIS: ['expense analysis', 'spending analysis', 'where am i spending', 'kahan ja raha', 'spending pattern', 'analyze expense'],
+  SAVINGS: ['save', 'saving', 'bachao', 'emergency fund', 'how much to save', 'savings rate', 'savings goal'],
+  RISK_ANALYSIS: ['risk', 'risk profile', 'how risky', 'financial risk', 'net worth', 'protection', 'risk analysis'],
   GENERAL_QUESTION: [], // fallback
 };
 
@@ -24,8 +28,9 @@ export class IntentDetectorService {
 
     // Priority order matters — SIMULATION first (most specific)
     const priorityOrder: ChatIntent[] = [
-      'SIMULATION', 'FORECAST', 'SCORE', 'LOAN', 'INVESTMENT',
-      'INSURANCE', 'RETIREMENT', 'GOAL', 'RECOMMENDATION', 'GENERAL_QUESTION',
+      'SIMULATION', 'FORECAST', 'SCORE', 'EXPENSE_ANALYSIS', 'BUDGET', 'SAVINGS',
+      'RISK_ANALYSIS', 'LOAN', 'INVESTMENT', 'INSURANCE', 'RETIREMENT', 'GOAL',
+      'RECOMMENDATION', 'GENERAL_QUESTION',
     ];
 
     for (const intent of priorityOrder) {

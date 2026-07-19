@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { FinancialAccountService } from './financial-account.service';
-import { CreateFinancialAccountDto } from './financial-account.dto';
+import { CreateFinancialAccountDto, UpdateFinancialAccountDto, FinancialAccountFilterDto } from './financial-account.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - FinancialAccount')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('financial-account')
+@Controller('finance/financial-account')
 export class FinancialAccountController {
-  constructor(private readonly financialAccountService: FinancialAccountService) {}
+  constructor(private readonly service: FinancialAccountService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateFinancialAccountDto) {
-    return this.financialAccountService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new FinancialAccount' })
+  create(@Request() req, @Body() dto: CreateFinancialAccountDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.financialAccountService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all FinancialAccount with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: FinancialAccountFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.financialAccountService.findOne(id);
+  @ApiOperation({ summary: 'Get FinancialAccount by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateFinancialAccountDto>) {
-    return this.financialAccountService.update(id, dto);
+  @ApiOperation({ summary: 'Update FinancialAccount' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateFinancialAccountDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.financialAccountService.remove(id);
+  @ApiOperation({ summary: 'Soft delete FinancialAccount' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

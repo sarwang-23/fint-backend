@@ -1,35 +1,43 @@
-﻿import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { ExpenseService } from './expense.service';
-import { CreateExpenseDto } from './expense.dto';
+import { CreateExpenseDto, UpdateExpenseDto, ExpenseFilterDto } from './expense.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Expense')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('expense')
+@Controller('finance/expense')
 export class ExpenseController {
-  constructor(private readonly expenseService: ExpenseService) {}
+  constructor(private readonly service: ExpenseService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateExpenseDto) {
-    return this.expenseService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Expense' })
+  create(@Request() req, @Body() dto: CreateExpenseDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.expenseService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Expense with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: ExpenseFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.expenseService.findOne(id);
+  @ApiOperation({ summary: 'Get Expense by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateExpenseDto>) {
-    return this.expenseService.update(id, dto);
+  @ApiOperation({ summary: 'Update Expense' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateExpenseDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.expenseService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Expense' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

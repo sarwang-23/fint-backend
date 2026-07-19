@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { AssetService } from './asset.service';
-import { CreateAssetDto } from './asset.dto';
+import { CreateAssetDto, UpdateAssetDto, AssetFilterDto } from './asset.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Asset')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('asset')
+@Controller('finance/asset')
 export class AssetController {
-  constructor(private readonly assetService: AssetService) {}
+  constructor(private readonly service: AssetService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateAssetDto) {
-    return this.assetService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Asset' })
+  create(@Request() req, @Body() dto: CreateAssetDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.assetService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Asset with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: AssetFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.assetService.findOne(id);
+  @ApiOperation({ summary: 'Get Asset by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateAssetDto>) {
-    return this.assetService.update(id, dto);
+  @ApiOperation({ summary: 'Update Asset' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateAssetDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.assetService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Asset' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

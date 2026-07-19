@@ -1,26 +1,43 @@
-﻿
-import { Controller, Post, Get, Delete, Body, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { RetirementService } from './retirement.service';
-import { CreateRetirementDto } from './retirement.dto';
+import { CreateRetirementDto, UpdateRetirementDto, RetirementFilterDto } from './retirement.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Retirement')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('retirement')
+@Controller('finance/retirement')
 export class RetirementController {
-  constructor(private readonly retirementService: RetirementService) {}
+  constructor(private readonly service: RetirementService) {}
 
   @Post()
-  save(@Req() req, @Body() dto: CreateRetirementDto) {
-    return this.retirementService.save(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Retirement' })
+  create(@Request() req, @Body() dto: CreateRetirementDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  find(@Req() req) {
-    return this.retirementService.find(req.user.id);
+  @ApiOperation({ summary: 'Get all Retirement with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: RetirementFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
-  @Delete()
-  remove(@Req() req) {
-    return this.retirementService.remove(req.user.id);
+  @Get(':id')
+  @ApiOperation({ summary: 'Get Retirement by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update Retirement' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateRetirementDto) {
+    return this.service.update(id, req.user.id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Soft delete Retirement' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

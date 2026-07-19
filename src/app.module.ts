@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './auth/auth.module';
 import { IncomeModule } from './finance/income/income.module';
@@ -13,9 +14,11 @@ import { AssetModule } from './finance/asset/asset.module';
 import { FinancialGoalModule } from './finance/financial-goal/financial-goal.module';
 import { FinancialAccountModule } from './finance/financial-account/financial-account.module';
 import { ScoreModule } from './score/score.module';
-import { UsersModule } from './users/users.module';
-import { NotificationsModule } from './notifications/notifications.module';
+import { AiModule } from './ai/ai.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 import { ReportsModule } from './reports/reports.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { UsersModule } from './users/users.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -30,6 +33,8 @@ import { AdminModule } from './admin/admin.module';
       limit: 100,
     }]),
 
+    ScheduleModule.forRoot(),
+
     DatabaseModule,
 
     AuthModule,
@@ -43,9 +48,11 @@ import { AdminModule } from './admin/admin.module';
     FinancialGoalModule,
     FinancialAccountModule,
     ScoreModule,
-    UsersModule,
-    NotificationsModule,
+    AiModule,
+    AnalyticsModule,
     ReportsModule,
+    NotificationsModule,
+    UsersModule,
     AdminModule,
   ],
 })

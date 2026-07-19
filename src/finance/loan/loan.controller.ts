@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { LoanService } from './loan.service';
-import { CreateLoanDto } from './loan.dto';
+import { CreateLoanDto, UpdateLoanDto, LoanFilterDto } from './loan.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Loan')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('loan')
+@Controller('finance/loan')
 export class LoanController {
-  constructor(private readonly loanService: LoanService) {}
+  constructor(private readonly service: LoanService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateLoanDto) {
-    return this.loanService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Loan' })
+  create(@Request() req, @Body() dto: CreateLoanDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.loanService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Loan with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: LoanFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.loanService.findOne(id);
+  @ApiOperation({ summary: 'Get Loan by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateLoanDto>) {
-    return this.loanService.update(id, dto);
+  @ApiOperation({ summary: 'Update Loan' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateLoanDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.loanService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Loan' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

@@ -8,7 +8,12 @@ export type ChatIntent =
   | 'LOAN'
   | 'INVESTMENT'
   | 'INSURANCE'
-  | 'RETIREMENT';
+  | 'RETIREMENT'
+  | 'BUDGET'
+  | 'EXPENSE_ANALYSIS'
+  | 'SAVINGS'
+  | 'RISK_ANALYSIS';
+
 
 export interface ChatContext {
   userId: string;

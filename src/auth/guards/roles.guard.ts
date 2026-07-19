@@ -1,11 +1,7 @@
-import { CanActivate, ExecutionContext, Injectable, ForbiddenException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserRole } from '@prisma/client';
-import { ROLES_KEY } from '../decorators/roles.decorator';
-
-// Only ever meaningful paired with JwtAuthGuard first — this guard trusts
-// request.user.role, which comes from the validated JWT payload
-// (see jwt.strategy.ts), not from anything client-supplied.
+import { ROLES_KEY } from '../constants';
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
@@ -15,17 +11,10 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-
-    // No @Roles() on this route — nothing extra required beyond being logged in.
-    if (!requiredRoles || requiredRoles.length === 0) {
+    if (!requiredRoles) {
       return true;
     }
-
     const { user } = context.switchToHttp().getRequest();
-    if (!user || !requiredRoles.includes(user.role)) {
-      throw new ForbiddenException('You do not have permission to access this resource');
-    }
-
-    return true;
+    return requiredRoles.some((role) => user?.role === role);
   }
 }

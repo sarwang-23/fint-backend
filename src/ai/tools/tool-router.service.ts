@@ -3,7 +3,8 @@ import { ChatContext, ChatIntent } from '../interfaces/chat-context.interface';
 import { RecommendationService } from '../services/recommendation.service';
 import { ForecastService } from '../services/forecast.service';
 import { SimulationService } from '../services/simulation.service';
-import { ScoreService } from '../../score/services/score.service';
+import { ScoreService } from '../../score/score.service';
+import { AdvisoryService } from '../services/advisory.service';
 import { getErrorMessage } from '../utils/error.util';
 
 export interface ToolResult {
@@ -20,6 +21,7 @@ export class ToolRouterService {
     private readonly forecastService: ForecastService,
     private readonly simulationService: SimulationService,
     private readonly scoreService: ScoreService,
+    private readonly advisoryService: AdvisoryService,
   ) {}
 
   async route(intent: ChatIntent, ctx: ChatContext, message: string): Promise<ToolResult | null> {
@@ -45,16 +47,32 @@ export class ToolRouterService {
           return null;
 
         case 'SCORE':
-          const score = this.scoreService.calculate({
+          const scoreResult = this.scoreService.calculate({
             income: ctx.income,
             expense: ctx.expense,
             investment: ctx.investment,
             loan: ctx.loan,
           });
+          const score = scoreResult.score;
           return { toolUsed: 'ScoreTool', data: { score, label: this.getScoreLabel(score) } };
 
+        case 'BUDGET':
+          const budgetData = await this.advisoryService.getBudgetSuggestions(ctx.userId);
+          return { toolUsed: 'BudgetTool', data: budgetData };
+
+        case 'EXPENSE_ANALYSIS':
+          const expenseData = await this.advisoryService.analyzeSpending(ctx.userId);
+          return { toolUsed: 'ExpenseAnalysisTool', data: expenseData };
+
+        case 'SAVINGS':
+          const savingsData = await this.advisoryService.getSavingsRecommendations(ctx.userId);
+          return { toolUsed: 'SavingsTool', data: savingsData };
+
+        case 'RISK_ANALYSIS':
+          const riskData = await this.advisoryService.analyzeRisk(ctx.userId);
+          return { toolUsed: 'RiskAnalysisTool', data: riskData };
+
         default:
-          // General questions, loan, insurance, goal — use advisor prompt directly without tool
           return null;
       }
     } catch (error) {

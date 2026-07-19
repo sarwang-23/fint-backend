@@ -5,6 +5,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 // Controllers
 import { AiController } from './controllers/ai.controller';
 import { ChatController } from './chat/chat.controller';
+import { AdvisoryController } from './controllers/advisory.controller';
 
 // Core Services
 import { AiService } from './services/ai.service';
@@ -12,6 +13,7 @@ import { RecommendationService } from './services/recommendation.service';
 import { ForecastService } from './services/forecast.service';
 import { SimulationService } from './services/simulation.service';
 import { PromptBuilderService } from './services/prompt-builder.service';
+import { AdvisoryService } from './services/advisory.service';
 
 // AI Provider
 import { GeminiProvider } from './providers/gemini.provider';
@@ -53,17 +55,19 @@ import { IntentDetectorService } from './tools/intent-detector.service';
 import { ToolRouterService } from './tools/tool-router.service';
 
 // External
-import { ScoreService } from '../score/services/score.service';
+import { ScoreModule } from '../score/score.module';
 
 @Module({
   imports: [
     ConfigModule,
     ScheduleModule.forRoot(),
+    ScoreModule,
     // DatabaseModule is @Global() — PrismaService injected automatically
   ],
   controllers: [
     AiController,
-    ChatController,   // Phase 11
+    ChatController,
+    AdvisoryController,
   ],
   providers: [
     // Core
@@ -72,6 +76,7 @@ import { ScoreService } from '../score/services/score.service';
     ForecastService,
     SimulationService,
     PromptBuilderService,
+    AdvisoryService,
 
     // AI Provider
     GeminiProvider,
@@ -111,9 +116,6 @@ import { ScoreService } from '../score/services/score.service';
     ContextBuilderService,
     IntentDetectorService,
     ToolRouterService,
-
-    // External
-    ScoreService,
   ],
   exports: [AiService, UsageService, AnalyticsService, ChatService],
 })

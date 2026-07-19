@@ -1,36 +1,43 @@
-﻿
-import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { FinancialGoalService } from './financial-goal.service';
-import { CreateFinancialGoalDto } from './financial-goal.dto';
+import { CreateFinancialGoalDto, UpdateFinancialGoalDto, FinancialGoalFilterDto } from './financial-goal.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - FinancialGoal')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('financial-goal')
+@Controller('finance/financial-goal')
 export class FinancialGoalController {
-  constructor(private readonly financialGoalService: FinancialGoalService) {}
+  constructor(private readonly service: FinancialGoalService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateFinancialGoalDto) {
-    return this.financialGoalService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new FinancialGoal' })
+  create(@Request() req, @Body() dto: CreateFinancialGoalDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.financialGoalService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all FinancialGoal with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: FinancialGoalFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.financialGoalService.findOne(id);
+  @ApiOperation({ summary: 'Get FinancialGoal by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateFinancialGoalDto>) {
-    return this.financialGoalService.update(id, dto);
+  @ApiOperation({ summary: 'Update FinancialGoal' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateFinancialGoalDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.financialGoalService.remove(id);
+  @ApiOperation({ summary: 'Soft delete FinancialGoal' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

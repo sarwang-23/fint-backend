@@ -1,50 +1,68 @@
-﻿import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { CreateLoanDto } from './loan.dto';
+import { Prisma, Loan } from '@prisma/client';
 
 @Injectable()
 export class LoanRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) {}
 
-  create(userId: string, data: CreateLoanDto) {
-    return this.prisma.loan.create({
-      data: {
-        ...data,
-        startDate: new Date(data.startDate),
-        endDate: data.endDate ? new Date(data.endDate) : undefined,
-        nextEmiDate: data.nextEmiDate ? new Date(data.nextEmiDate) : undefined,
-        userId,
-      },
+  async create(data: Prisma.LoanUncheckedCreateInput): Promise<Loan> {
+    return this.prisma.loan.create({ data });
+  }
+
+  async findAll(params: {
+    skip?: number;
+    take?: number;
+    where?: Prisma.LoanWhereInput;
+    orderBy?: Prisma.LoanOrderByWithRelationInput;
+  }): Promise<{ data: Loan[]; total: number }> {
+    const { skip, take, where, orderBy } = params;
+    const [data, total] = await Promise.all([
+      this.prisma.loan.findMany({
+        skip,
+        take,
+        where: { ...where, deletedAt: null },
+        orderBy,
+      }),
+      this.prisma.loan.count({ where: { ...where, deletedAt: null } }),
+    ]);
+    return { data, total };
+  }
+
+  async findById(id: string): Promise<Loan | null> {
+    return this.prisma.loan.findFirst({
+      where: { id, deletedAt: null },
     });
   }
 
-  findAllByUser(userId: string) {
-    return this.prisma.loan.findMany({
-      where: { userId },
-    });
-  }
-
-  findOne(id: string) {
-    return this.prisma.loan.findUnique({
-      where: { id },
-    });
-  }
-
-  update(id: string, data: Partial<CreateLoanDto>) {
+  async update(id: string, data: Prisma.LoanUpdateInput): Promise<Loan> {
     return this.prisma.loan.update({
       where: { id },
+      data,
+    });
+  }
+
+  async softDelete(id: string): Promise<Loan> {
+    return this.prisma.loan.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async auditLog(userId: string, action: string, recordId: string, oldData: any, newData: any) {
+    return this.prisma.financeAuditLog.create({
       data: {
-        ...data,
-        startDate: data.startDate ? new Date(data.startDate) : undefined,
-        endDate: data.endDate ? new Date(data.endDate) : undefined,
-        nextEmiDate: data.nextEmiDate ? new Date(data.nextEmiDate) : undefined,
+        userId,
+        module: 'Loan',
+        action,
+        recordId,
+        oldData: oldData ? JSON.parse(JSON.stringify(oldData)) : null,
+        newData: newData ? JSON.parse(JSON.stringify(newData)) : null,
       },
     });
   }
 
-  remove(id: string) {
-    return this.prisma.loan.delete({
-      where: { id },
-    });
+  async executeInTransaction<T>(fn: (prisma: any) => Promise<T>): Promise<T> {
+    return this.prisma.$transaction(fn);
   }
 }

@@ -231,6 +231,7 @@ model User {
   aiSimulations       AISimulation[]
   aiConversations     AIConversation[]
   aiAuditLogs         AIAuditLog[]
+  financeAuditLogs    FinanceAuditLog[]
   notifications       Notification[]
   reports             Report[]
 }
@@ -277,6 +278,7 @@ model FinancialAccount {
 
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+  deletedAt       DateTime?
 
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   incomes         Income[]
@@ -297,6 +299,7 @@ model Income {
 
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
+  deletedAt   DateTime?
 
   user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   account     FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -315,6 +318,7 @@ model Expense {
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
 
   user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   account       FinancialAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
@@ -332,6 +336,7 @@ model Asset {
 
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
 
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -353,6 +358,7 @@ model Loan {
 
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
+  deletedAt         DateTime?
 
   user              User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -371,6 +377,7 @@ model Investment {
 
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
+  deletedAt       DateTime?
 
   user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -389,6 +396,7 @@ model Insurance {
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
 
   user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -406,6 +414,7 @@ model Retirement {
 
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+  deletedAt             DateTime?
 
   user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -424,8 +433,25 @@ model FinancialGoal {
 
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
+  deletedAt       DateTime?
 
   user            User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FinanceAuditLog {
+  id           String    @id @default(cuid())
+  userId       String
+  module       String
+  action       String
+  recordId     String
+  oldData      Json?
+  newData      Json?
+  createdAt    DateTime  @default(now())
+
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([module])
 }
 
 // ─────────────────────────────────────────────
@@ -552,20 +578,21 @@ model AIAuditLog {
 }
 
 model Notification {
-  id        String             @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  type      NotificationType   @default(EMAIL)
   title     String
   message   String
+  type      String    @default("INFO")
+  isRead    Boolean   @default(false)
   status    NotificationStatus @default(PENDING)
-  isRead    Boolean            @default(false)
   sentAt    DateTime?
   readAt    DateTime?
-  createdAt DateTime           @default(now())
+  createdAt DateTime  @default(now())
 
-  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([createdAt])
   @@index([status])
 }
 

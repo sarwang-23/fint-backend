@@ -18,11 +18,17 @@ export class GeminiProvider implements AIProvider, OnModuleInit {
   onModuleInit() {
     const apiKey = this.config.get<string>('GEMINI_API_KEY');
     if (!apiKey) {
-      this.logger.error('GEMINI_API_KEY is not set in environment variables!');
-      throw new Error('GEMINI_API_KEY is required');
+      this.logger.warn('GEMINI_API_KEY is not set. AI features will be unavailable.');
+      return;
     }
     this.client = new GoogleGenAI({ apiKey });
     this.logger.log(`GeminiProvider initialized (model: ${this.model})`);
+  }
+
+  private ensureClient() {
+    if (!this.client) {
+      throw new Error('GEMINI_API_KEY is not configured. Please add it to your .env file.');
+    }
   }
 
   /**
@@ -30,6 +36,7 @@ export class GeminiProvider implements AIProvider, OnModuleInit {
    * Used for: Chat / Advisor responses.
    */
   async generate(prompt: string): Promise<string> {
+    this.ensureClient();
     return this.withRetry(async () => {
       const response = await this.client.models.generateContent({
         model: this.model,
@@ -49,6 +56,7 @@ export class GeminiProvider implements AIProvider, OnModuleInit {
    * instructions. This method strips that automatically before parsing.
    */
   async generateJSON<T>(prompt: string): Promise<T> {
+    this.ensureClient();
     return this.withRetry(async () => {
       const response = await this.client.models.generateContent({
         model: this.model,

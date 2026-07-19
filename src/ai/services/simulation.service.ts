@@ -2,7 +2,7 @@ import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { PromptBuilderService } from './prompt-builder.service';
 import { GeminiProvider } from '../providers/gemini.provider';
-import { ScoreService } from '../../score/services/score.service';
+import { ScoreService } from '../../score/score.service';
 import { SimulationRepository } from '../repositories/simulation.repository';
 import { AuditLogRepository } from '../repositories/audit-log.repository';
 import { getErrorMessage, getErrorStack } from '../utils/error.util';
@@ -44,8 +44,8 @@ export class SimulationService {
       const currentSavings = currentData.income - currentData.expense;
       const newSavings = clonedData.income - clonedData.expense;
 
-      const oldScore = this.scoreService.calculate(currentData);
-      const newScore = this.scoreService.calculate(clonedData);
+      const oldScore = this.scoreService.calculate(currentData).score;
+      const newScore = this.scoreService.calculate(clonedData).score;
 
       const changesString = this.buildChangesString(currentData, clonedData, currentSavings, newSavings);
       const prompt = this.promptBuilder.buildSimulationPrompt({ oldScore, newScore, changes: changesString });

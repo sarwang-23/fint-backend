@@ -1,35 +1,43 @@
-﻿import { Controller, Post, Get, Patch, Delete, Body, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Request } from '@nestjs/common';
 import { IncomeService } from './income.service';
-import { CreateIncomeDto } from './income.dto';
+import { CreateIncomeDto, UpdateIncomeDto, IncomeFilterDto } from './income.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('Finance - Income')
+@ApiBearerAuth()
 @UseGuards(JwtAuthGuard)
-@Controller('income')
+@Controller('finance/income')
 export class IncomeController {
-  constructor(private readonly incomeService: IncomeService) {}
+  constructor(private readonly service: IncomeService) {}
 
   @Post()
-  create(@Req() req, @Body() dto: CreateIncomeDto) {
-    return this.incomeService.create(req.user.id, dto);
+  @ApiOperation({ summary: 'Create new Income' })
+  create(@Request() req, @Body() dto: CreateIncomeDto) {
+    return this.service.create(req.user.id, dto);
   }
 
   @Get()
-  findAll(@Req() req) {
-    return this.incomeService.findAll(req.user.id);
+  @ApiOperation({ summary: 'Get all Income with pagination, filtering and sorting' })
+  findAll(@Request() req, @Query() filter: IncomeFilterDto) {
+    return this.service.findAll(req.user.id, filter);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.incomeService.findOne(id);
+  @ApiOperation({ summary: 'Get Income by ID' })
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.service.findOne(id, req.user.id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: Partial<CreateIncomeDto>) {
-    return this.incomeService.update(id, dto);
+  @ApiOperation({ summary: 'Update Income' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: UpdateIncomeDto) {
+    return this.service.update(id, req.user.id, dto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.incomeService.remove(id);
+  @ApiOperation({ summary: 'Soft delete Income' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.service.remove(id, req.user.id);
   }
 }

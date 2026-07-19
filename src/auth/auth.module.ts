@@ -4,10 +4,13 @@ import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationsModule } from '../notifications/notifications.module';
 
-import { AuthController } from './controllers/auth.controller';
-import { AuthService } from './services/auth.service';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { LocalStrategy } from './strategies/local.strategy';
+
+import { AuthRepository } from './auth.repository';
+import { RefreshTokenStrategy } from './strategies/refresh.strategy';
 
 @Module({
   imports: [
@@ -19,13 +22,13 @@ import { LocalStrategy } from './strategies/local.strategy';
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
         signOptions: {
-          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '1d') as any,
+          expiresIn: (config.get<string>('JWT_EXPIRES_IN') ?? '15m') as any,
         },
       }),
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, LocalStrategy],
+  providers: [AuthService, AuthRepository, JwtStrategy, LocalStrategy, RefreshTokenStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
