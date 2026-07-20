@@ -11,6 +11,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 
 import { AuthRepository } from './auth.repository';
 import { RefreshTokenStrategy } from './strategies/refresh.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
 
 @Module({
   imports: [
@@ -28,7 +29,7 @@ import { RefreshTokenStrategy } from './strategies/refresh.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, AuthRepository, JwtStrategy, LocalStrategy, RefreshTokenStrategy],
+  providers: [AuthService, AuthRepository, JwtStrategy, LocalStrategy, RefreshTokenStrategy, GoogleStrategy],
   exports: [AuthService, JwtModule],
 })
 export class AuthModule {}
