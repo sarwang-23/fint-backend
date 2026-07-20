@@ -62,7 +62,7 @@ export class AuthService {
       refreshTokenExpiry: expiry,
     });
 
-    const verifyUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/verify-email?token=${verificationToken}`;
+    const verifyUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/verify-email?token=${verificationToken}`;
 
     await this.mailService.sendMail(
       email,
@@ -165,7 +165,7 @@ export class AuthService {
       refreshTokenExpiry: expiry,
     });
 
-    const resetUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+    const resetUrl = `${this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3001'}/reset-password?token=${resetToken}`;
 
     await this.mailService.sendMail(
       email,
