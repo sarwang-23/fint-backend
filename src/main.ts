@@ -12,10 +12,8 @@ async function bootstrap() {
   // Security Middlewares
   app.use(helmet());
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3001',
+    origin: true,
     credentials: true,
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: 'Content-Type, Accept, Authorization',
   });
 
   // Global validation pipe — class-validator + class-transformer
