@@ -8,13 +8,14 @@ export class MailService {
   private transporter: nodemailer.Transporter;
 
   constructor(private readonly configService: ConfigService) {
+    const smtpUser = this.configService.get<string>('SMTP_USER');
+    const smtpPass = this.configService.get<string>('SMTP_PASS');
+
     this.transporter = nodemailer.createTransport({
       host: this.configService.get<string>('SMTP_HOST') || 'localhost',
       port: this.configService.get<number>('SMTP_PORT') || 1025,
-      auth: {
-        user: this.configService.get<string>('SMTP_USER') || '',
-        pass: this.configService.get<string>('SMTP_PASS') || '',
-      },
+      // Only include auth if credentials are actually configured
+      ...(smtpUser ? { auth: { user: smtpUser, pass: smtpPass || '' } } : {}),
     });
   }
 
