@@ -116,15 +116,22 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   @ApiOperation({ summary: 'Google OAuth callback' })
   async googleAuthRedirect(@Request() req: any, @Res() res: Response) {
-    // Generate JWT token for the authenticated user
-    const loginData = await this.authService.login(req.user.id);
-    
-    // Redirect to frontend with tokens in URL (in production, use secure cookies instead)
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3001';
-    
-    // Using a script injection or redirect fragment to pass tokens to frontend
-    const redirectUrl = `${frontendUrl}/login?accessToken=${loginData.accessToken}&refreshToken=${loginData.refreshToken}`;
-    
-    res.redirect(redirectUrl);
+
+    try {
+      if (!req.user || !req.user.id) {
+        throw new Error('Google OAuth failed to provide a valid user.');
+      }
+      // Generate JWT token for the authenticated user
+      const loginData = await this.authService.login(req.user.id);
+      
+      // Using a script injection or redirect fragment to pass tokens to frontend
+      const redirectUrl = `${frontendUrl}/login?accessToken=${loginData.accessToken}&refreshToken=${loginData.refreshToken}`;
+      
+      res.redirect(redirectUrl);
+    } catch (error: any) {
+      console.error('Google Callback Error:', error);
+      res.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error.message)}`);
+    }
   }
 }
