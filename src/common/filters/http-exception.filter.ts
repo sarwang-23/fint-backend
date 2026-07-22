@@ -7,6 +7,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -27,10 +29,21 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? exception.getResponse()
         : 'Internal server error';
 
+    const errStack = exception instanceof Error ? exception.stack : JSON.stringify(exception);
     this.logger.error(
       `[${request.method}] ${request.url} - Status: ${status}`,
-      exception instanceof Error ? exception.stack : JSON.stringify(exception),
+      errStack,
     );
+
+    // Write to file for debugging
+    try {
+      const logMsg = `\n--- ERROR AT ${new Date().toISOString()} ---\n` +
+                     `URL: ${request.url}\n` +
+                     `Status: ${status}\n` +
+                     `Exception: ${errStack}\n` +
+                     `Response: ${JSON.stringify(message)}\n`;
+      fs.appendFileSync(path.join(process.cwd(), 'error.log'), logMsg);
+    } catch (e) {}
 
     response.status(status).json({
       statusCode: status,
